@@ -36,17 +36,19 @@ struct ip_header {
 void	print_ip_packats(const unsigned char *buffer) {
 	const struct ip_header *ip = (const struct ip_header *)buffer;
 
-	struct in_addr src, dst;
-	src.s_addr = ip->src_addr;
-	dst.s_addr = ip->dest_addr;
+	char src_str[INET_ADDRSTRLEN];
+    char dst_str[INET_ADDRSTRLEN];
 
-	printf("IPv%u\nIHL: %u\nTotal Length: %u\nProtocol: %u\n %s -> %s\n",
+    inet_ntop(AF_INET, &(ip->src_addr), src_str, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &(ip->dest_addr), dst_str, INET_ADDRSTRLEN);
+
+	printf("IPv%u | IHL: %u | Total Length: %u | Protocol: %u | %s -> %s\n",
 			ip->version,
 			ip->ihl,
 			ntohs(ip->total_length),
 			ip->protocol,
-			inet_ntoa(src),
-			inet_ntoa(dst)
+			src_str,
+			dst_str
 		 );
 }
 
