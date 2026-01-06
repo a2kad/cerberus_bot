@@ -1,4 +1,3 @@
-#include <netinet/tcp.h>
 #include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -10,6 +9,7 @@
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <endian.h>
 
 struct ip_header {
@@ -34,6 +34,45 @@ struct ip_header {
 	uint32_t	src_addr;
 	uint32_t	dest_addr;
 }__attribute__((packed));
+
+void print_payload(const unsigned char *playload, int len) {
+	if (len < 0 ) return;
+	printf("    [Payload (%d bytes)]:\n    ", len);
+	for (int i = 0; i < len; i++){
+		if (isprint(playload[i])){
+			printf("%c", playload[i]);
+		} else {
+			printf(".");
+		}
+		if ((i + 1) % 64 == 0) printf("\n");
+	}
+	printf("\n");
+}
+
+void process_packet(unsigned char *buffer, int size){
+	(void)size;
+	struct ethhdr *eth = (struct ethhdr *)buffer;
+
+	if (ntohs(eth->h_proto) != ETH_P_IP) return;
+
+	struct ip_header *ip = (struct ip_header *)(buffer + sizeof(struct ethhdr));
+	
+	int ip_len = ip->ihl * 4;
+	if (ip->protocol == 6){
+		struct tcphdr *tcp = (struct tcphdr *)(buffer + sizeof(struct ethhdr) + ip_len);
+		int tcp_len = tcp->doff * 4;
+		unsigned char *payload = (unsigned char *)(buffer + sizeof(struct ethhdr) + ip_len + tcp_len);
+		int payload_size = ntohs(ip->total_length) - ip_len - tcp_len;
+		if (ntohs(tcp->dest) == 80 || ntohs(tcp->source) == 80) {
+            printf("\n[HTTP DETECTED] SrcPort: %d -> DstPort: %d\n", 
+                   ntohs(tcp->source), ntohs(tcp->dest));
+            
+            // Выводим данные
+            print_payload(payload, payload_size);
+            printf("--------------------------------------------------\n");
+        }
+	}
+}
 
 void	print_ip_packats(const unsigned char *buffer) {
 	const struct ip_header *ip = (const struct ip_header *)buffer;
@@ -77,7 +116,8 @@ int main(void){
 
 		struct ethhdr *eth = (struct ethhdr *)buffer;
 		if (ntohs(eth->h_proto) == ETH_P_IP){
-			print_ip_packats(buffer + sizeof(struct ethhdr));
+			// print_ip_packats(buffer + sizeof(struct ethhdr));
+			process_packet(buffer, data_size);
 		}
 	}
 
