@@ -66,8 +66,6 @@ void process_packet(unsigned char *buffer, int size){
 		if (ntohs(tcp->dest) == 80 || ntohs(tcp->source) == 80) {
             printf("\n[HTTP DETECTED] SrcPort: %d -> DstPort: %d\n", 
                    ntohs(tcp->source), ntohs(tcp->dest));
-            
-            // Выводим данные
             print_payload(payload, payload_size);
             printf("--------------------------------------------------\n");
         }
